@@ -169,3 +169,195 @@ Flutter akan membangun ulang semua widget dari nol dan menghapus semua state ata
 ## Lampiran Screenshot Project
 
 ![main page](image/main_page.png)
+
+# Tugas 8:
+
+**Nama:** Heraldo Arman  
+**NPM:** 2406420702  
+**Kelas:** PBP - E  
+**Link Penugasan:** [Tugas 7](https://pbp-fasilkom-ui.github.io/ganjil-2026/assignments/individual/assignment-8)
+
+---
+
+## 1. Jelaskan perbedaan antara `Navigator.push()` dan `Navigator.pushReplacement()` pada Flutter. Dalam kasus apa sebaiknya masing-masing digunakan pada aplikasi Football Shop kamu?
+
+### Navigator.push()
+
+- **Fungsi**: Menambahkan halaman baru di atas stack navigasi tanpa menghapus halaman sebelumnya
+- **Behavior**: Halaman sebelumnya tetap ada di memori dan dapat diakses dengan tombol back
+- **Stack**: Current Page → New Page (ditumpuk)
+
+```dart
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (context) => NewPage()),
+);
+```
+
+### Navigator.pushReplacement()
+
+- **Fungsi**: Mengganti halaman saat ini dengan halaman baru
+- **Behavior**: Halaman sebelumnya dihapus dari stack, tidak bisa kembali dengan tombol back
+- **Stack**: Current Page → New Page (diganti)
+
+```dart
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (context) => NewPage()),
+);
+```
+
+### Penggunaan Navigator.push() dalam Aplikasi Pacil Station:
+
+```dart
+onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) =>
+          MyHomePage(colorScheme: Theme.of(context).colorScheme),
+    ),
+  );
+},
+```
+
+### Penggunaan Navigator.push() dalam Aplikasi Pacil Station:
+
+ga ada 😅
+
+## Key Differences
+
+| Aspek          | Navigator.push()  | Navigator.pushReplacement() |
+| -------------- | ----------------- | --------------------------- |
+| Stack Behavior | Menambah ke stack | Mengganti di stack          |
+| Tombol Back    | Bisa kembali      | Tidak bisa kembali          |
+
+---
+
+## 2. Bagaimana kamu memanfaatkan _hierarchy widget_ seperti `Scaffold`, `AppBar`, dan `Drawer` untuk membangun struktur halaman yang konsisten di seluruh aplikasi?
+
+di `main.dart` saya mengimplementasikan MaterialApp untuk membuat tema dasar
+
+```dart
+    return MaterialApp(
+      title: 'Pacil Station',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: Colors.blue,
+        ).copyWith(secondary: Colors.blueAccent[400]),
+      ),
+      home: MyHomePage(
+        colorScheme: Theme.of(context).colorScheme,
+      ),
+    );
+```
+
+lalu di `menu.dart` saya mengimplementasikan scaffold sebagai struktur dasar halaman.
+Setiap halaman utama seperti MyHomePage dan ProductFormPage menggunakan Scaffold sebagai widget paling luar.
+
+```dart
+   return Scaffold(
+     appBar: AppBar(...),
+     drawer: LeftDrawer(),
+     body: ...,
+   );
+
+```
+
+lalu di `left_drawer.dart` saya mengimplementasikan Drawer sebagai navigasi global antar halaman.
+Komponen Drawer diwakili oleh widget LeftDrawer, yang didefinisikan secara terpisah agar bisa digunakan ulang di setiap halaman.
+
+```dart
+drawer: LeftDrawer(),
+```
+
+---
+
+## 3. Dalam konteks desain antarmuka, apa kelebihan menggunakan _layout widget_ seperti `Padding`, `SingleChildScrollView`, dan `ListView` saat menampilkan elemen-elemen form? Berikan contoh penggunaannya dari aplikasi kamu.
+
+1. **`Padding` – menjaga jarak dan keterbacaan elemen**
+   `Padding` digunakan untuk memberi jarak antara batas layar dengan elemen-elemen form agar tampilan tidak terasa sempit dan tetap mudah dibaca.
+   Dengan `Padding`, antarmuka terlihat lebih bersih dan profesional.
+
+   **Contoh:**
+
+   ```dart
+   Padding(
+     padding: const EdgeInsets.all(16.0),
+     child: TextFormField(
+       decoration: InputDecoration(
+         labelText: "Nama Produk",
+         border: OutlineInputBorder(),
+       ),
+     ),
+   )
+   ```
+
+2. **`SingleChildScrollView` – memungkinkan form di-_scroll_**
+   Saat jumlah elemen form cukup banyak, tampilan bisa melampaui tinggi layar.
+   Dengan `SingleChildScrollView`, seluruh isi form bisa digulir ke bawah, mencegah elemen terpotong dan menjaga aksesibilitas di berbagai ukuran layar.
+
+   **Contoh:**
+
+   ```dart
+   body: SingleChildScrollView(
+     child: Padding(
+       padding: const EdgeInsets.all(16.0),
+       child: Form(...),
+     ),
+   ),
+   ```
+
+3. **`ListView` – menampilkan banyak elemen dengan efisiensi tinggi**
+   `ListView` digunakan untuk menampilkan daftar elemen secara vertikal dengan kemampuan _scrolling_ bawaan.
+   Berbeda dengan `Column`, `ListView` otomatis mengatur _scrollable layout_ dan cocok ketika jumlah item tidak tetap atau dapat bertambah secara dinamis.
+   **Contoh:**
+   ```dart
+   body: ListView.builder(
+     itemCount: items.length,
+     itemBuilder: (context, index) {
+       return ProductCard(item: items[index]);
+     },
+   ),
+   ```
+
+---
+
+## 4. Bagaimana kamu menyesuaikan *warna tema* agar aplikasi Football Shop memiliki identitas visual yang konsisten dengan brand toko?
+
+penyesuaian warna tema dilakukan melalui konfigurasi ThemeData
+```dart
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Pacil Station',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: Colors.blue,
+        ).copyWith(secondary: Colors.blueAccent[400]),
+      ),
+      home: MyHomePage(
+        colorScheme: Theme.of(context).colorScheme,
+      ),
+
+    );
+  }
+}
+```
+lalu agar menyesuaikan di komponen lainnya, saya menggunakan context color scheme agar bisa menyesuaikan dengan tema yang sudah dibuat
+
+```dart
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Center(child: Text('Form Tambah Produk')),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      ),
+
+```
+
+---
