@@ -4,7 +4,7 @@ import '../widgets/info_card.dart';
 import "../widgets/left_drawer.dart";
 
 class MyHomePage extends StatelessWidget {
-  MyHomePage({super.key, required ColorScheme colorScheme});
+  MyHomePage({super.key, ColorScheme? colorScheme});
 
   final List<ItemHomepage> items = [
     ItemHomepage(

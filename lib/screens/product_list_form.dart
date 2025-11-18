@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pacil_station_mobile/widgets/left_drawer.dart';
+import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:pacil_station_mobile/screens/menu.dart';
 
 class ProductFormPage extends StatefulWidget {
   const ProductFormPage({super.key});
@@ -34,16 +38,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
     'New Balance',
   ];
 
-  final List<String> _categories = [
-    'Sepatu',
-    'Pakaian',
-    'Aksesoris',
-    'Bola',
-
-  ];
+  final List<String> _categories = ['Sepatu', 'Pakaian', 'Aksesoris', 'Bola'];
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Form Tambah Produk')),
@@ -107,7 +107,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
                     if (int.tryParse(value)! < 0) {
                       return "Price tidak boleh negatif!";
                     }
-                  
+
                     return null;
                   },
                 ),
@@ -219,7 +219,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
                       .toList(),
                   onChanged: (String? newValue) {
                     setState(() {
-                      _brand = newValue ?? "Nike";
+                      _brand = newValue ?? "Naiki";
                     });
                   },
                 ),
@@ -367,65 +367,51 @@ class _ProductFormPageState extends State<ProductFormPage> {
                     style: ButtonStyle(
                       backgroundColor: MaterialStateProperty.all(Colors.indigo),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate()) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Product saved successfully'),
-                              content: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Name: $_name'),
-                                    Text('Price: $_price'),
-                                    Text('Description: $_description'),
-                                    Text('Category: $_category'),
-                                    Text(
-                                      'Thumbnail: ${_thumbnail.isEmpty ? "-" : _thumbnail}',
-                                    ),
-                                    Text(
-                                      'Featured: ${_isFeatured ? "Yes" : "No"}',
-                                    ),
-                                    Text('Size: $_size'),
-                                    Text('Brand: $_brand'),
-                                    Text('Rating: $_rating'),
-                                    Text('Stock: $_stock'),
-                                    Text('Total Sales: $_totalSales'),
-                                    Text(
-                                      'Flip Thumbnail: ${_flipThumbnail ? "Yes" : "No"}',
-                                    ),
-                                  ],
+                        final response = await request.postJson(
+                          "https://heraldo-arman-pacilstation.pbp.cs.ui.ac.id/create-flutter/",
+                          jsonEncode({
+                            "name": _name,
+                            "price": _price,
+                            "description": _description,
+                            "thumbnail": _thumbnail,
+                            "flip_thumbnail": _flipThumbnail,
+                            "category": _category,
+                            "is_featured": _isFeatured,
+                            "size": _size,
+                            "rating": _rating,
+                            "stock": _stock,
+                            "total_sales": _totalSales,
+                            "brand": _brand,
+                          }),
+                        );
+
+                        if (context.mounted) {
+                          if (response['status'] == 'success') {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Product successfully saved!"),
+                              ),
+                            );
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MyHomePage(
+                                  colorScheme: Theme.of(context).colorScheme,
                                 ),
                               ),
-                              actions: [
-                                TextButton(
-                                  child: const Text('OK'),
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              ],
                             );
-                          },
-                        ).then((_) {
-                          _formKey.currentState!.reset();
-                          setState(() {
-                            _name = "";
-                            _price = 0;
-                            _description = "";
-                            _thumbnail = "";
-                            _category = "Sepatu";
-                            _isFeatured = false;
-                            _size = "M";
-                            _brand = "Naiki";
-                            _rating = 0.0;
-                            _stock = 0;
-                            _totalSales = 0;
-                            _flipThumbnail = false;
-                          });
-                        });
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "Something went wrong, please try again.",
+                                ),
+                              ),
+                            );
+                          }
+                        }
                       }
                     },
                     child: const Text(

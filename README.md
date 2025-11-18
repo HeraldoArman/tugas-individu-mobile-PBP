@@ -175,7 +175,7 @@ Flutter akan membangun ulang semua widget dari nol dan menghapus semua state ata
 **Nama:** Heraldo Arman  
 **NPM:** 2406420702  
 **Kelas:** PBP - E  
-**Link Penugasan:** [Tugas 7](https://pbp-fasilkom-ui.github.io/ganjil-2026/assignments/individual/assignment-8)
+**Link Penugasan:** [Tugas 8](https://pbp-fasilkom-ui.github.io/ganjil-2026/assignments/individual/assignment-8)
 
 ---
 
@@ -359,5 +359,135 @@ lalu agar menyesuaikan di komponen lainnya, saya menggunakan context color schem
       ),
 
 ```
+
+---
+
+
+
+
+
+# Tugas 9:
+
+**Nama:** Heraldo Arman  
+**NPM:** 2406420702  
+**Kelas:** PBP - E  
+**Link Penugasan:** [Tugas 9](https://pbp-fasilkom-ui.github.io/ganjil-2026/assignments/individual/assignment-9)
+
+---
+
+## 1. Jelaskan mengapa kita perlu membuat model Dart saat mengambil/mengirim data JSON? Apa konsekuensinya jika langsung memetakan `Map<String, dynamic>` tanpa model (terkait validasi tipe, null-safety, maintainability)?
+- *Type Safety*: Model memberikan validasi tipe yang kuat, mencegah runtime errors
+- *Null Safety*: Dart null safety memastikan field yang required tidak null
+- *IntelliSense*: IDE dapat memberikan autocomplete dan error detection
+- *Maintainability*: Code lebih terstruktur dan mudah di-maintain
+- *Validation*: Dapat menambahkan custom validation di constructor
+
+```dart
+// Tanpa model - rawan error
+Map<String, dynamic> product = response;
+String name = product['name']; // Bisa null/wrong type
+int price = product['price']; // Runtime error jika string
+
+// Dengan model - type safe
+Product product = Product.fromJson(response);
+String name = product.fields.name; // Guaranteed string
+double price = product.fields.price; // Type validated
+```
+### Masalah tanpa model:
+- Runtime errors saat akses field
+- Typo di key name tidak terdeteksi
+- Sulit tracking perubahan struktur data
+- Debugging lebih sulit
+- Tidak ada dokumentasi struktur data
+
+
+---
+
+## 2. Apa fungsi package _http_ dan _CookieRequest_ dalam tugas ini? Jelaskan perbedaan peran _http_ vs _CookieRequest_.
+
+### Package HTTP:
+
+- Library standar untuk HTTP requests di Flutter
+- Fungsi: GET, POST, PUT, DELETE requests
+- Tidak handle cookies secara otomatis
+- Manual header management
+
+CookieRequest (dari pbp_django_auth):
+### Extension dari HTTP client dengan cookie management
+- Fungsi: Automatic cookie handling, session management
+- Built-in authentication methods (login, logout)
+- Django integration features
+
+### Perbedaan peran:
+```dart
+// HTTP - Manual
+import 'package:http/http.dart' as http;
+var response = await http.post(
+  Uri.parse('url'),
+  headers: {'Content-Type': 'application/json'},
+  body: json.encode(data)
+);
+
+// CookieRequest - Automatic
+final request = context.read<CookieRequest>();
+var response = await request.postJson('url', data);
+
+```
+### Keunggulan CookieRequest:
+- Session persistence
+- CSRF token handling
+- Authentication state management
+- Simplified Django integration
+
+
+---
+
+## 3. Jelaskan mengapa instance _CookieRequest_ perlu untuk dibagikan ke semua komponen di aplikasi Flutter.
+
+- Session Consistency: Semua komponen menggunakan session yang sama
+- Cookie Persistence: Cookies login tersimpan di seluruh aplikasi
+- Authentication State: Status login dapat diakses di mana saja
+- Performance: Single instance lebih efisien daripada multiple instances
+Tanpa sharing, maka setiap komponen punya session terpisah, login di satu tempat tidak berlaku di tempat lain.
+
+Implementasi dengan Provider:
+```dart
+// main.dart
+Provider(
+  create: (_) {
+    CookieRequest request = CookieRequest();
+    return request;
+  },
+  child: MyApp(),
+)
+
+// Di komponen manapun
+final request = context.watch<CookieRequest>();
+bool isLoggedIn = request.loggedIn;
+```
+
+---
+
+## 4. Jelaskan konfigurasi konektivitas yang diperlukan agar Flutter dapat berkomunikasi dengan Django. Mengapa kita perlu menambahkan 10.0.2.2 pada ALLOWED_HOSTS, mengaktifkan CORS dan pengaturan SameSite/cookie, dan menambahkan izin akses internet di Android? Apa yang akan terjadi jika konfigurasi tersebut tidak dilakukan dengan benar?
+
+
+
+---
+
+## 5. Jelaskan mekanisme pengiriman data mulai dari input hingga dapat ditampilkan pada Flutter.
+
+
+
+---
+
+## 6. Jelaskan mekanisme autentikasi dari login, register, hingga logout. Mulai dari input data akun pada Flutter ke Django hingga selesainya proses autentikasi oleh Django dan tampilnya menu pada Flutter.
+
+
+
+---
+
+## 7. Jelaskan bagaimana cara kamu mengimplementasikan checklist di atas secara step-by-step! (bukan hanya sekadar mengikuti tutorial).
+
+
 
 ---
