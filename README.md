@@ -470,17 +470,230 @@ bool isLoggedIn = request.loggedIn;
 
 ## 4. Jelaskan konfigurasi konektivitas yang diperlukan agar Flutter dapat berkomunikasi dengan Django. Mengapa kita perlu menambahkan 10.0.2.2 pada ALLOWED_HOSTS, mengaktifkan CORS dan pengaturan SameSite/cookie, dan menambahkan izin akses internet di Android? Apa yang akan terjadi jika konfigurasi tersebut tidak dilakukan dengan benar?
 
+### Allowed Host configuration di django
+``` python
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "heraldo-arman-pacilstation.pbp.cs.ui.ac.id", "10.0.2.2"]
+```
+- 10.0.2.2 adalah alamat localhost dari perspektif Android emulator
+- Tanpa ini: Django akan reject request dengan "DisallowedHost" error
 
+### Settings dan cookie settings
+```python
+CORS_ALLOW_ALL_ORIGINS = True 
+CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None'
+```
+CORS berfungsi untuk bengizinkan cross-origin requests dari Flutter, tanpa ini browser/flutter akan block request dengan CORS error
+
+cookie settings mengizinkan cookie sharing antar domain tanpa ini cookies tidak akan tersimpan/dikirim
+
+### Android permission
+```xml
+<!-- android/app/src/main/AndroidManifest.xml -->
+<uses-permission android:name="android.permission.INTERNET" />
+```
+Berfungsi untuk mengizinkan aplikasi mengakses internet
+
+
+### Konsekuensi jika tidak dikonfigurasi dengan benar
+- ALLOWED_HOSTS: HTTP 400 Bad Request
+- CORS: Cross-origin request blocked
+- Cookie Settings: Login tidak persistent
+- Internet Permission: Network requests fail
 
 ---
 
 ## 5. Jelaskan mekanisme pengiriman data mulai dari input hingga dapat ditampilkan pada Flutter.
 
+### Langkah pertama adalah input form pada flutter
+```dart
+// User input form
+final _formKey = GlobalKey<FormState>();
+String _name = "";
+int _price = 0;
+```
+### lalu di flutter akan melakukann validasi dan packaging
+```dart
+if (_formKey.currentState!.validate()) {
+  final response = await request.postJson(
+    "url/create-flutter/",
+    jsonEncode({
+      "name": _name,
+      "price": _price,
+    }),
+  );
+}
+```
+### lalu setelah itu data akan di kirim ke django. data akan di serialize menjadi JSON, dikirim via HTTP Post dengan cookies, serta CSRF token akan secara otomatis disertakan.
 
+### Pemrosesan di Django
+```python
+@csrf_exempt
+def create_product_flutter(request):
+    data = json.loads(request.body)
+    product = Product(
+        user=request.user,
+        name=strip_tags(data.get('name')),
+        price=data.get('price'),
+    )
+    product.save()
+    return JsonResponse({"status": "success"})
+```
+
+### Response handling
+```dart
+if (response['status'] == 'success') {
+  Navigator.pushReplacement(context, 
+    MaterialPageRoute(builder: (context) => MyHomePage()));
+}
+```
+
+Setelah melakukan response handling, di aplikasi flutter dapat melakukan navigasi atau mengupdate halaman, Lalu data baru akan muncul di list halaman flutter.
 
 ---
 
 ## 6. Jelaskan mekanisme autentikasi dari login, register, hingga logout. Mulai dari input data akun pada Flutter ke Django hingga selesainya proses autentikasi oleh Django dan tampilnya menu pada Flutter.
+
+### register
+Sebelum melakukan login, user harus register terlebih dahulu lewat input bawaan flutter
+```dart
+String username = _usernameController.text;
+String password = _passwordController.text;
+```
+
+Lalu data akan dikirim ke django
+```dart
+final response = await request.postJson(
+  "https://url/auth/register/",
+  {
+    'username': username,
+    'password1': password,
+    'password2': password,
+  }
+);
+```
+Setelah itu data akan di proses di aplikasi django
+```python
+@csrf_exempt
+def register(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = data['username']
+        password1 = data['password1']
+        password2 = data['password2']
+
+        if password1 != password2:
+            logger.warning(f"Password mismatch for username: {username}")
+            return JsonResponse({
+                "status": False,
+                "message": "Passwords do not match."
+            }, status=400)
+            
+        if User.objects.filter(username=username).exists():
+            logger.warning(f"Attempt to register with existing username: {username}")
+            return JsonResponse({
+                "status": False,
+                "message": "Username already exists."
+            }, status=400)
+
+        user = User.objects.create_user(username=username, password=password1)
+        user.save()
+        
+        return JsonResponse({
+            "username": user.username,
+            "status": 'success',
+            "message": "User created successfully!"
+        }, status=200)
+    
+    else:
+        return JsonResponse({
+            "status": False,
+            "message": "Invalid request method."
+        }, status=400)
+```
+Setelah itu, di flutter akan menerima response kalau proses registrasi berhasil atau tidak.
+
+### Login
+Pertama, user akan menginput kredensialnya, lalu mengirim fetch lagi ke aplikasi django. Dalam kasus ini menggunakan request dari module pbp
+```dart
+final response = await request.login(
+  "https://url/auth/login/",
+  {'username': username, 'password': password}
+);
+```
+
+lalu di django akan melakukan logika login
+```python
+@csrf_exempt
+def login(request):
+    username = request.POST['username']
+    password = request.POST['password']
+    user = authenticate(username=username, password=password)
+    if user is not None:
+        if user.is_active:
+            auth_login(request, user)
+            
+            return JsonResponse({
+                "username": user.username,
+                "status": True,
+                "message": "Login successful!"
+            }, status=200)
+        else:
+            return JsonResponse({
+                "status": False,
+                "message": "Login failed, account is disabled."
+            }, status=401)
+
+    else:
+        return JsonResponse({
+            "status": False,
+            "message": "Login failed, please check your username or password."
+        }, status=401)
+```
+
+Setelah itu django akan secara oromatis membuat sessionn dan mengatir cookies. CookiesRequest akan secara otomatis menyimpan cookies dan request.loggenIn akan menjadi true.
+
+Setelah itu, lakukan navigasi di flutter jika sudah log in
+```dart
+if (request.loggedIn) {
+    Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MyHomePage()),
+    );
+}
+```
+
+### Logout
+di flutter akan melakukan request
+```dart
+await request.logout("https://url/auth/logout/");
+```
+
+lalu di django juga akan logout
+```python
+@csrf_exempt
+def logout(request):
+    username = request.user.username
+    try:
+        auth_logout(request)
+        logger.info(f"User {username} logged out successfully.")
+        return JsonResponse({
+            "username": username,
+            "status": True,
+            "message": "Logged out successfully!"
+        }, status=200)
+    except:
+        logger.error(f"Logout failed for user {username}.")
+        return JsonResponse({
+            "status": False,
+            "message": "Logout failed."
+        }, status=401)
+```
+
+Disini, django akan menghapus session, cookies nya dibersihkan, dan mengubah request.loggedIn menjadi false.
 
 
 
@@ -488,6 +701,6 @@ bool isLoggedIn = request.loggedIn;
 
 ## 7. Jelaskan bagaimana cara kamu mengimplementasikan checklist di atas secara step-by-step! (bukan hanya sekadar mengikuti tutorial).
 
-
+Disini, selain mengikuti tutorial, saya juga berkesperiman mengubah sedikit pada kode django dan flutter saya. Saya juga mencoba membaca beberapa dokumentasi flutter di https://flutter.dev/learn dan beberapa tutorial youtube. Saya juga terkadang bertanya ke llm untuk melakukan debugging dan mencari error
 
 ---
